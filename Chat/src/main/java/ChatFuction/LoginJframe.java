@@ -1,4 +1,4 @@
-package ChatFuction;
+package main.java.ChatFuction;
 
 import javax.swing.*;
 import java.awt.*;

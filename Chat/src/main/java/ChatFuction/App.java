@@ -1,9 +1,9 @@
-package ChatFuction;
+package main.java.ChatFuction;
 
 
 public class App {
     public static void main(String[] args) {
-        //LoginJframe loginJframe = new LoginJframe();
-        RegisterJframe registerJframe = new RegisterJframe();
+        LoginJframe loginJframe = new LoginJframe();
+        //RegisterJframe registerJframe = new RegisterJframe();
     }
 }
