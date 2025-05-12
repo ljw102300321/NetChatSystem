@@ -1,4 +1,4 @@
-package main.java.ChatFuction;
+package main.java.ChatFunction;
 
 import java.io.*;
 import java.net.Socket;

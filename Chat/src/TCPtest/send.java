@@ -1,6 +1,6 @@
 package TCPtest;
 
-import main.java.ChatFuction.GetConn;
+import main.java.ChatFunction.GetConn;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

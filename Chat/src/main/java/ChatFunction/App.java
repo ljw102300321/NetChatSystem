@@ -1,4 +1,4 @@
-package main.java.ChatFuction;
+package main.java.ChatFunction;
 
 
 public class App {
