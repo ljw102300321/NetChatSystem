@@ -1,4 +1,4 @@
-package main.java.ChatFunction;
+package ChatFunction;
 
 import javax.swing.*;
 import javax.swing.border.Border;

@@ -1,10 +1,11 @@
-package main.java.ChatFunction;
+package ChatFunction;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Random;
 
 public class LoginJframe extends JFrame implements ActionListener {
@@ -27,7 +28,15 @@ public class LoginJframe extends JFrame implements ActionListener {
     private JTextField codeField;
     private JLabel verificationCodeLabel;
 
-    public LoginJframe() {
+    // 登录回调接口
+    public interface LoginListener {
+        void onLoginAttempt(String id, String username, String password);
+    }
+    private LoginListener loginListener;
+
+
+    public LoginJframe(LoginListener listener) {
+        this.loginListener = listener;
         initComponents();
         initJFrame();
         this.setVisible(true);
@@ -244,7 +253,13 @@ public class LoginJframe extends JFrame implements ActionListener {
             verification = create();
             verificationCodeLabel.setText(verification);
         } else if (source == loginButton) {
-            openAccountion();
+            if (loginListener != null) {
+                String id = accountField.getText();
+                String username = usernameField.getText();
+                String password = new String(passwordField.getPassword());
+                loginListener.onLoginAttempt(id,username, password);
+            }
+            //openAccountion();
         } else if (source == registerButton) {
             openRegistration();
         }
@@ -304,8 +319,8 @@ public class LoginJframe extends JFrame implements ActionListener {
         // 实现数据库验证逻辑
         return false; // 示例返回值
     }
-
+/*
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> new LoginJframe());
-    }
+    }*/
 }

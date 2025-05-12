@@ -1,16 +1,45 @@
-package main.java.ChatFunction;
+package ChatFunction;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
+/*
+/*
+public class User {
+    public static void main(String[] args) {
+        try (
+                Socket socket = new Socket("127.0.0.1", 9999);
+                PrintWriter out = new PrintWriter(
+                        new OutputStreamWriter(socket.getOutputStream(), "UTF-8"), true);
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream(), "UTF-8"));
+        ) {
+            System.out.println("已连接到服务器");
+
+            // 发送登录请求
+            out.println("申请登录");//服务器弹出登录界面
+            System.out.println("已发送消息: 申请登录");
+
+            //当用户发消息时：点击了
+
+
+
+            // 接收服务器响应
+            String response = in.readLine();
+            System.out.println("收到服务器回复: " + response);
+
+        } catch (IOException e) {
+            System.out.println("连接服务器失败: " + e.getMessage());
+        }
+        //System.out.println("客户端已退出");
+    }
+}
+ */
 
 public class ChatClient extends JFrame implements ActionListener {
     private JTextArea chatArea;
@@ -109,6 +138,7 @@ public class ChatClient extends JFrame implements ActionListener {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     socket.receive(packet);
                     String receivedMessage = new String(packet.getData(), 0, packet.getLength());
+                    //System.out.println("Received: " + receivedMessage);
                     if (receivedMessage.startsWith("[FILE]")) {
                         handleFileReceive(receivedMessage.substring(6));
                     } else {
@@ -260,11 +290,34 @@ public class ChatClient extends JFrame implements ActionListener {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new ChatClient(10086, "1"); // 第一个客户端
-            new ChatClient(10087, "2");   // 第二个客户端
-            new ChatClient(10088, "3");// 第三个客户端
-        });
+/*       11
+
+ */
+        try (
+                Socket socket = new Socket("127.0.0.1", 9999);
+                PrintWriter out = new PrintWriter(
+                        new OutputStreamWriter(socket.getOutputStream(), "UTF-8"), true);
+                BufferedReader in = new BufferedReader(
+                        new InputStreamReader(socket.getInputStream(), "UTF-8"));
+        ) {
+            System.out.println("已连接到服务器");
+
+            // 发送登录请求
+            out.println("申请登录");//服务器弹出登录界面
+            System.out.println("已发送消息: 申请登录");
+
+            //当用户发消息时：点击了
+
+
+
+            // 接收服务器响应
+            String response = in.readLine();
+            System.out.println("收到服务器回复: " + response);
+
+        } catch (IOException e) {
+            System.out.println("连接服务器失败: " + e.getMessage());
+        }
+        //System.out.println("客户端已退出");
     }
 }
 
