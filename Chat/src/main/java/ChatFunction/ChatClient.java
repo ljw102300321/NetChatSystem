@@ -16,8 +16,8 @@ public class ChatClient extends JFrame implements ActionListener {
     private JTextArea chatArea;
     private JTextField messageField;
     private JButton sendButton;
-    private JComboBox<String> friendSelector;
-    private DefaultComboBoxModel<String> friendsModel;
+    private JList<String> friendList;
+    private DefaultListModel<String> friendsModel;
     private DatagramSocket socket;
     private Thread receiveThread;
     private int localPort;
@@ -40,9 +40,10 @@ public class ChatClient extends JFrame implements ActionListener {
         sendButton = new JButton("发送");
         sendButton.addActionListener(this);
 
-        friendsModel = new DefaultComboBoxModel<>();
-        friendSelector = new JComboBox<>(friendsModel);
-        friendSelector.addItemListener(e -> {
+        friendsModel = new DefaultListModel<>();
+        friendList = new JList<>(friendsModel);
+        friendList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        friendList.addListSelectionListener(e -> {
             try {
                 updateServerAddress();
             } catch (UnknownHostException ex) {
@@ -51,17 +52,20 @@ public class ChatClient extends JFrame implements ActionListener {
         });
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
-        bottomPanel.add(friendSelector, BorderLayout.WEST);
+        bottomPanel.add(new JScrollPane(friendList), BorderLayout.WEST);
         bottomPanel.add(messageField, BorderLayout.CENTER);
         bottomPanel.add(sendButton, BorderLayout.EAST);
 
+        JPanel topPanel = new JPanel(new FlowLayout());
+        JButton addFriendButton = new JButton("添加好友");
+        addFriendButton.addActionListener(e -> showAddFriendDialog());
+        topPanel.add(addFriendButton);
+
+        getContentPane().add(topPanel, BorderLayout.NORTH);
         getContentPane().add(scrollPane, BorderLayout.CENTER);
         getContentPane().add(bottomPanel, BorderLayout.SOUTH);
 
         friendsMap = new HashMap<>();
-        addFriend("客户端1", 10086);
-        addFriend("客户端2", 10087);
-        addFriend("客户端3", 10088);
 
         try {
             socket = new DatagramSocket(localPort); // 绑定到本地端口
@@ -111,7 +115,7 @@ public class ChatClient extends JFrame implements ActionListener {
     }
 
     private void updateServerAddress() throws UnknownHostException {
-        String selectedFriend = (String) friendSelector.getSelectedItem();
+        String selectedFriend = friendList.getSelectedValue();
         if (selectedFriend != null && friendsMap.containsKey(selectedFriend)) {
             serverAddress = InetAddress.getByName("127.0.0.1");
             serverPort = friendsMap.get(selectedFriend);
@@ -121,6 +125,35 @@ public class ChatClient extends JFrame implements ActionListener {
     private void addFriend(String name, int port) {
         friendsModel.addElement(name);
         friendsMap.put(name, port);
+    }
+
+    private void showAddFriendDialog() {
+        JPanel panel = new JPanel(new GridLayout(2, 2));
+        JLabel nameLabel = new JLabel("好友名称:");
+        JTextField nameField = new JTextField();
+        JLabel portLabel = new JLabel("端口号:");
+        JTextField portField = new JTextField();
+
+        panel.add(nameLabel);
+        panel.add(nameField);
+        panel.add(portLabel);
+        panel.add(portField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "添加好友", JOptionPane.OK_CANCEL_OPTION);
+        if (result == JOptionPane.OK_OPTION) {
+            String name = nameField.getText().trim();
+            String portStr = portField.getText().trim();
+            if (!name.isEmpty() && !portStr.isEmpty()) {
+                try {
+                    int port = Integer.parseInt(portStr);
+                    addFriend(name, port);
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(this, "请输入有效的端口号", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "请填写所有字段", "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
 
     public static void main(String[] args) {

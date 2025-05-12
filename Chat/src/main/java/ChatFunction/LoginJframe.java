@@ -235,12 +235,6 @@ public class LoginJframe extends JFrame implements ActionListener {
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
-
-        try {
-            setIconImage(new ImageIcon("icon.png").getImage());
-        } catch (Exception e) {
-            System.out.println("图标加载失败，使用默认图标");
-        }
     }
 
     @Override
@@ -250,10 +244,15 @@ public class LoginJframe extends JFrame implements ActionListener {
             verification = create();
             verificationCodeLabel.setText(verification);
         } else if (source == loginButton) {
-            performLogin();
+            openAccountion();
         } else if (source == registerButton) {
             openRegistration();
         }
+    }
+
+    private void openAccountion() {
+        this.dispose();
+        new ChatClient(Integer.parseInt(accountField.getText()));
     }
 
     private void performLogin() {
