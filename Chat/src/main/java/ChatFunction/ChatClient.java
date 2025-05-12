@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
+import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -16,6 +16,7 @@ public class ChatClient extends JFrame implements ActionListener {
     private JTextArea chatArea;
     private JTextField messageField;
     private JButton sendButton;
+    private JButton fileSendButton;
     private JList<String> friendList;
     private DefaultListModel<String> friendsModel;
     private DatagramSocket socket;
@@ -24,9 +25,11 @@ public class ChatClient extends JFrame implements ActionListener {
     private InetAddress serverAddress;
     private int serverPort = 10086;
     private Map<String, Integer> friendsMap;
+    private String clientName; // 客户端名称
 
-    public ChatClient(int localPort) {
+    public ChatClient(int localPort, String clientName) {
         this.localPort = localPort;
+        this.clientName = clientName;
         setTitle("聊天客户端 - 端口: " + localPort);
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -36,7 +39,7 @@ public class ChatClient extends JFrame implements ActionListener {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            e.printStackTrace();
+            showErrorDialog("无法设置系统外观", e.getMessage());
         }
 
         chatArea = new JTextArea();
@@ -51,6 +54,10 @@ public class ChatClient extends JFrame implements ActionListener {
         sendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
         sendButton.addActionListener(this);
 
+        fileSendButton = new JButton("发送文件");
+        fileSendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        fileSendButton.addActionListener(e -> sendFile());
+
         friendsModel = new DefaultListModel<>();
         friendList = new JList<>(friendsModel);
         friendList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -59,14 +66,17 @@ public class ChatClient extends JFrame implements ActionListener {
             try {
                 updateServerAddress();
             } catch (UnknownHostException ex) {
-                throw new RuntimeException(ex);
+                showErrorDialog("未知主机地址", ex.getMessage());
             }
         });
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.add(new JScrollPane(friendList), BorderLayout.WEST);
         bottomPanel.add(messageField, BorderLayout.CENTER);
-        bottomPanel.add(sendButton, BorderLayout.EAST);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.add(fileSendButton);
+        buttonPanel.add(sendButton);
+        bottomPanel.add(buttonPanel, BorderLayout.EAST);
 
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         JButton addFriendButton = new JButton("添加好友");
@@ -84,8 +94,7 @@ public class ChatClient extends JFrame implements ActionListener {
             socket = new DatagramSocket(localPort); // 绑定到本地端口
             startReceivingMessages();
         } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "无法初始化客户端：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            showErrorDialog("无法初始化客户端", e.getMessage());
             System.exit(1);
         }
 
@@ -100,9 +109,15 @@ public class ChatClient extends JFrame implements ActionListener {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     socket.receive(packet);
                     String receivedMessage = new String(packet.getData(), 0, packet.getLength());
-                    SwingUtilities.invokeLater(() -> chatArea.append("收到: " + receivedMessage + "\n"));
+                    if (receivedMessage.startsWith("[FILE]")) {
+                        handleFileReceive(receivedMessage.substring(6));
+                    } else {
+                        String sender = getSenderFromMessage(receivedMessage);
+                        String message = getMessageContent(receivedMessage);
+                        SwingUtilities.invokeLater(() -> chatArea.append(sender + ": " + message + "\n"));
+                    }
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    showErrorDialog("接收消息失败", e.getMessage());
                     break;
                 }
             }
@@ -115,14 +130,14 @@ public class ChatClient extends JFrame implements ActionListener {
         String message = messageField.getText().trim();
         if (!message.isEmpty()) {
             try {
-                byte[] sendData = message.getBytes();
+                String fullMessage = clientName + ": " + message;
+                byte[] sendData = fullMessage.getBytes();
                 DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, serverAddress, serverPort);
                 socket.send(sendPacket);
-                chatArea.append("发送: " + message + "\n");
+                chatArea.append(fullMessage + "\n");
                 messageField.setText("");
             } catch (IOException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "发送失败：" + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                showErrorDialog("发送消息失败", ex.getMessage());
             }
         }
     }
@@ -132,6 +147,8 @@ public class ChatClient extends JFrame implements ActionListener {
         if (selectedFriend != null && friendsMap.containsKey(selectedFriend)) {
             serverAddress = InetAddress.getByName("127.0.0.1");
             serverPort = friendsMap.get(selectedFriend);
+        } else {
+            throw new UnknownHostException("未选择有效的好友");
         }
     }
 
@@ -163,19 +180,90 @@ public class ChatClient extends JFrame implements ActionListener {
                     int port = Integer.parseInt(portStr);
                     addFriend(name, port);
                 } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(this, "请输入有效的端口号", "错误", JOptionPane.ERROR_MESSAGE);
+                    showErrorDialog("无效的端口号", "请输入有效的端口号");
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "请填写所有字段", "错误", JOptionPane.ERROR_MESSAGE);
+                showErrorDialog("缺少必要信息", "请填写所有字段");
             }
         }
     }
 
+    private void sendFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (FileInputStream fis = new FileInputStream(file)) {
+                byte[] buffer = new byte[(int) file.length()];
+                fis.read(buffer);
+
+                String fileName = file.getName();
+                String header = "[FILE]" + clientName + ":" + fileName + "|";
+                byte[] headerBytes = header.getBytes();
+                byte[] dataToSend = new byte[headerBytes.length + buffer.length];
+                System.arraycopy(headerBytes, 0, dataToSend, 0, headerBytes.length);
+                System.arraycopy(buffer, 0, dataToSend, headerBytes.length, buffer.length);
+
+                DatagramPacket sendPacket = new DatagramPacket(dataToSend, dataToSend.length, serverAddress, serverPort);
+                socket.send(sendPacket);
+                chatArea.append(clientName + " 发送文件: " + fileName + "\n");
+            } catch (IOException ex) {
+                showErrorDialog("发送文件失败", ex.getMessage());
+            }
+        }
+    }
+
+    private void handleFileReceive(String data) {
+        String[] parts = data.split("\\|", 2);
+        if (parts.length != 2) return;
+
+        String senderAndFileName = parts[0];
+        String[] senderParts = senderAndFileName.split(":");
+        if (senderParts.length != 2) return;
+
+        String sender = senderParts[0];
+        String fileName = senderParts[1];
+        byte[] fileData = parts[1].getBytes();
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setSelectedFile(new File(fileName));
+        int result = fileChooser.showSaveDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File file = fileChooser.getSelectedFile();
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(fileData);
+                chatArea.append(sender + " 接收文件: " + fileName + "\n");
+            } catch (IOException ex) {
+                showErrorDialog("保存文件失败", ex.getMessage());
+            }
+        }
+    }
+
+    private void showErrorDialog(String title, String message) {
+        JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    private String getSenderFromMessage(String message) {
+        int colonIndex = message.indexOf(':');
+        if (colonIndex > 0) {
+            return message.substring(0, colonIndex).trim();
+        }
+        return "未知用户";
+    }
+
+    private String getMessageContent(String message) {
+        int colonIndex = message.indexOf(':');
+        if (colonIndex > 0) {
+            return message.substring(colonIndex + 1).trim();
+        }
+        return message;
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new ChatClient(10086); // 第一个客户端
-            new ChatClient(10087); // 第二个客户端
-            new ChatClient(10088); // 第三个客户端
+            new ChatClient(10086, "1"); // 第一个客户端
+            new ChatClient(10087, "2");   // 第二个客户端
+            new ChatClient(10088, "3");// 第三个客户端
         });
     }
 }

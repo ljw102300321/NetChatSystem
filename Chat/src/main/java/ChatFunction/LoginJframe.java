@@ -252,7 +252,7 @@ public class LoginJframe extends JFrame implements ActionListener {
 
     private void openAccountion() {
         this.dispose();
-        new ChatClient(Integer.parseInt(accountField.getText()));
+        new ChatClient(Integer.parseInt(accountField.getText()),usernameField.getText());
     }
 
     private void performLogin() {
