@@ -28,21 +28,33 @@ public class ChatClient extends JFrame implements ActionListener {
     public ChatClient(int localPort) {
         this.localPort = localPort;
         setTitle("聊天客户端 - 端口: " + localPort);
-        setSize(500, 400);
+        setSize(800, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
+        // 设置整体风格
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         chatArea = new JTextArea();
         chatArea.setEditable(false);
+        chatArea.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         JScrollPane scrollPane = new JScrollPane(chatArea);
 
         messageField = new JTextField();
+        messageField.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+
         sendButton = new JButton("发送");
+        sendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
         sendButton.addActionListener(this);
 
         friendsModel = new DefaultListModel<>();
         friendList = new JList<>(friendsModel);
         friendList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        friendList.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         friendList.addListSelectionListener(e -> {
             try {
                 updateServerAddress();
@@ -56,8 +68,9 @@ public class ChatClient extends JFrame implements ActionListener {
         bottomPanel.add(messageField, BorderLayout.CENTER);
         bottomPanel.add(sendButton, BorderLayout.EAST);
 
-        JPanel topPanel = new JPanel(new FlowLayout());
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
         JButton addFriendButton = new JButton("添加好友");
+        addFriendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
         addFriendButton.addActionListener(e -> showAddFriendDialog());
         topPanel.add(addFriendButton);
 
@@ -72,7 +85,7 @@ public class ChatClient extends JFrame implements ActionListener {
             startReceivingMessages();
         } catch (IOException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "无法初始化客户端：" + e.getMessage());
+            JOptionPane.showMessageDialog(this, "无法初始化客户端：" + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
 
@@ -87,7 +100,7 @@ public class ChatClient extends JFrame implements ActionListener {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     socket.receive(packet);
                     String receivedMessage = new String(packet.getData(), 0, packet.getLength());
-                    chatArea.append("收到: " + receivedMessage + "\n");
+                    SwingUtilities.invokeLater(() -> chatArea.append("收到: " + receivedMessage + "\n"));
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
@@ -109,7 +122,7 @@ public class ChatClient extends JFrame implements ActionListener {
                 messageField.setText("");
             } catch (IOException ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "发送失败：" + ex.getMessage());
+                JOptionPane.showMessageDialog(this, "发送失败：" + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -128,10 +141,12 @@ public class ChatClient extends JFrame implements ActionListener {
     }
 
     private void showAddFriendDialog() {
-        JPanel panel = new JPanel(new GridLayout(2, 2));
+        JPanel panel = new JPanel(new GridLayout(2, 2, 10, 10));
         JLabel nameLabel = new JLabel("好友名称:");
+        nameLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
         JTextField nameField = new JTextField();
         JLabel portLabel = new JLabel("端口号:");
+        portLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
         JTextField portField = new JTextField();
 
         panel.add(nameLabel);
@@ -139,7 +154,7 @@ public class ChatClient extends JFrame implements ActionListener {
         panel.add(portLabel);
         panel.add(portField);
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "添加好友", JOptionPane.OK_CANCEL_OPTION);
+        int result = JOptionPane.showConfirmDialog(this, panel, "添加好友", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null);
         if (result == JOptionPane.OK_OPTION) {
             String name = nameField.getText().trim();
             String portStr = portField.getText().trim();
