@@ -15,7 +15,7 @@ public class user {
         OutputStream os=socket.getOutputStream();
 
         //3.使用输出流发送数据
-        os.write("你哈".getBytes());
+        os.write("哈!".getBytes());
         os.flush(); // 确保数据被发送
 
         //4.关闭资源
