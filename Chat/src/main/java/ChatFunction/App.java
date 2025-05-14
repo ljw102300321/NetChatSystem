@@ -31,7 +31,6 @@ public class App {
                         new ChatClient(10086, "用户1");
                     });
 
-
                     // 6. 可选：启动第二个客户端（用户2）
                     SwingUtilities.invokeLater(() -> {
                         new ChatClient(10087, "用户2");
