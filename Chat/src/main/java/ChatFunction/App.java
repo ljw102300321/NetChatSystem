@@ -1,48 +1,48 @@
 package ChatFunction;
 
-public class App {
-    public static void main(String[] args) {
-    /*
-    package TCPtest;
-
+import javax.swing.*;
 import java.io.IOException;
 
-public class LoginTest {
+public class App {
     public static void main(String[] args) {
-        // 先启动服务器线程
-        Thread serverThread = new Thread(() -> {
-            try {
-                Server.main(new String[]{});
-            } catch (IOException e) {
-                System.err.println("服务器启动失败: " + e.getMessage());
-            }
-        });
-        serverThread.start();
+        // 1. 启动服务器（后台线程）
+        new Thread(() -> {
+            ChatServer.main(new String[]{});
+        }).start();
 
-        // 等待服务器启动
+        // 2. 等待服务器启动（1秒）
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 
-        // 再启动客户端线程
-        Thread clientThread = new Thread(() -> {
-            User.main(new String[]{});
+        // 3. 显示登录窗口
+        SwingUtilities.invokeLater(() -> {
+            LoginJframe loginjframe = new LoginJframe((userId, name, password) -> {
+                System.out.println("登录尝试 - 账号: " + userId + ", 用户名: " + name + ", 密码: " + password);
+
+
+                if (userId.equals("1") && password.equals("3") && name.equals("2")) {
+                    System.out.println("登录成功");
+
+                    // 5. 启动客户端 GUI（用户1）
+                    SwingUtilities.invokeLater(() -> {
+                        new ChatClient(10086, "用户1");
+                    });
+
+                    // 6. 可选：启动第二个客户端（用户2）
+                    SwingUtilities.invokeLater(() -> {
+                        new ChatClient(10087, "用户2");
+                    });
+                } else {
+                    JOptionPane.showMessageDialog(null, "登录失败！", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            // 7. 设置登录窗口关闭时不终止整个程序（仅关闭窗口）
+            loginjframe.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            loginjframe.setVisible(true);
         });
-        clientThread.start();
-    }
-}
-     */
-        //LoginJframe lj= new LoginJframe();
-        //String userId = "111";
-        //String password = "11111";
-        //String phone = "222222222222";
-        LoginJframe loginjframe;
-        loginjframe = new LoginJframe((userId,password,phone) -> {
-            System.out.println("登录尝试 - 账号: " + userId + ", 密码: " + password+", 手机号: " + phone);
-            // 这里可以添加验证逻辑
-        });
-        loginjframe.setVisible(true);
     }
 }

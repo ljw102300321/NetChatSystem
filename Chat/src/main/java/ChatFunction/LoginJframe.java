@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Random;
@@ -30,7 +31,7 @@ public class LoginJframe extends JFrame implements ActionListener {
 
     // 登录回调接口
     public interface LoginListener {
-        void onLoginAttempt(String id, String username, String password);
+        void onLoginAttempt(String id, String username, String password) throws IOException;
     }
     private LoginListener loginListener;
 
@@ -257,19 +258,23 @@ public class LoginJframe extends JFrame implements ActionListener {
                 String id = accountField.getText();
                 String username = usernameField.getText();
                 String password = new String(passwordField.getPassword());
-                loginListener.onLoginAttempt(id,username, password);
+                try {
+                    loginListener.onLoginAttempt(id,username, password);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
             //openAccountion();
         } else if (source == registerButton) {
             openRegistration();
         }
     }
-
+/*
     private void openAccountion() {
         this.dispose();
         new ChatClient(Integer.parseInt(accountField.getText()),usernameField.getText());
     }
-
+*/
     private void performLogin() {
         String account = accountField.getText().trim();
         String username = usernameField.getText().trim();
