@@ -1,4 +1,4 @@
-package ChatFunction;
+package org.example;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -6,7 +6,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.Random;
 
 public class LoginJframe extends JFrame implements ActionListener {
@@ -31,7 +30,7 @@ public class LoginJframe extends JFrame implements ActionListener {
 
     // 登录回调接口
     public interface LoginListener {
-        void onLoginAttempt(String id, String username, String password) throws IOException;
+        void onLoginAttempt(String id, String username, String password,String verification1,String code) throws IOException, SQLException, ClassNotFoundException;
     }
     private LoginListener loginListener;
 
@@ -259,8 +258,12 @@ public class LoginJframe extends JFrame implements ActionListener {
                 String username = usernameField.getText();
                 String password = new String(passwordField.getPassword());
                 try {
-                    loginListener.onLoginAttempt(id,username, password);
+                    loginListener.onLoginAttempt(id,username, password,verification,codeField.getText());
                 } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                } catch (ClassNotFoundException ex) {
                     throw new RuntimeException(ex);
                 }
             }

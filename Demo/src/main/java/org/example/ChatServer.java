@@ -1,4 +1,4 @@
-package ChatFunction;
+package org.example;
 
 import java.io.*;
 import java.net.*;
@@ -126,6 +126,7 @@ public class ChatServer {
     /**
      * 处理发送文本消息
      */
+
     private void handleSendMessage(String from, String message) {
         String[] parts = message.split(":", 2);
         if (parts.length != 2) return;
@@ -159,6 +160,25 @@ public class ChatServer {
             }
 
             System.out.println("消息转发: " + from + " -> " + to + ": " + content);
+            try {
+                int sendId=-1;
+                int receiveId=-1;
+                try {
+                    sendId=JDBCUnil.selectId(from);
+                    receiveId=JDBCUnil.selectId(to);
+                }
+                catch (Exception e){
+                    System.out.println("查询失败");
+                }
+                if(sendId!=-1&&receiveId!=-1){
+                    JDBCUnil.insertChat(sendId+"",receiveId+"", content);
+                } else{
+                     System.out.println("插入失败");
+                }
+            }
+            catch (Exception e){
+                System.out.println("插入失败");
+            }
         } catch (IOException e) {
             PrintWriter writer = clientWriters.get(from);
             if (writer != null) {

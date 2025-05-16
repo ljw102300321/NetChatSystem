@@ -1,4 +1,4 @@
-package ChatFunction;
+package org.example;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.SQLException;
 
 public class RegisterJframe extends JFrame implements ActionListener {
     // 现代配色方案
@@ -185,19 +186,25 @@ public class RegisterJframe extends JFrame implements ActionListener {
             String actionCommand = ((JButton) source).getText();
             switch (actionCommand) {
                 case "立即加入":
-                    performRegister();
+                    try {
+                        performRegister();
+                    } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (ClassNotFoundException ex) {
+                        throw new RuntimeException(ex);
+                    }
                     break;
             }
         }
     }
 
-    private void performRegister() {
+    private void performRegister() throws SQLException, ClassNotFoundException {
         String account = accountField.getText().trim();
         String name = nameField.getText().trim();
         char[] password = passwordField.getPassword();
 
         if (validateInputs(account, name, password)) {
-            // 这里仅做演示，真实应用中应将数据发送至服务器
+
             System.out.println("Account: " + account);
             System.out.println("Name: " + name);
             System.out.println("Password: " + new String(password));
@@ -208,17 +215,30 @@ public class RegisterJframe extends JFrame implements ActionListener {
         }
     }
 
-    private boolean validateInputs(String account, String name, char[] password) {
+    private boolean validateInputs(String account, String name, char[] password) throws SQLException, ClassNotFoundException {
         if (account.isEmpty() || name.isEmpty() || password.length == 0) {
             statusLabel.setText("所有字段必须填写！");
             return false;
         }
-        return true;
+       String id= accountField.getText();
+                String userName=nameField.getText();
+        String userPassword=passwordField.getPassword().toString();
+        int insert=0;
+        try {
+            insert=JDBCUnil.insertUser(id, userName, userPassword);
+        }
+        catch (Exception e){
+            //System.out.println("注册失败");
+            //在界面显示注册失败
+            statusLabel.setText("注册失败！账户已经存在");
+        }
+
+        if(insert>0){
+            return true;
+        }
+        return false;
     }
 
-    public static void main(String[] args) {
-        EventQueue.invokeLater(() -> new RegisterJframe());
-    }
 }
 
 
