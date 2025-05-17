@@ -95,9 +95,10 @@ String sql="insert into friends (user_id, friend_id) values(?,?)";
         return id+"";
     }
     public static int insertChat(String sender_id,String receiver_id,String message )throws SQLException, ClassNotFoundException {
+        System.out.println(sender_id+receiver_id+message);
         int insert=0;
         Connection conn = GetConn.getConnection();
-        String sql="insert into chat (sender_id, receiver_id, message) values(?,?,?)";
+        String sql="insert into chat_history (sender_id, receiver_id, message) value (?,?,?);";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setString(1,sender_id);
         pstmt.setString(2,receiver_id);

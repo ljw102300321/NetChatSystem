@@ -306,14 +306,14 @@ public class ChatClient extends JFrame {
                 } else if (message.startsWith("MSG_SENT:")) {
                     String[] parts = message.split(":", 3);
                     if (parts.length == 3) {
-                        appendToChat("消息已发送给 " + parts[1] + ": " + parts[2]);
+                        //appendToChat("消息已发送给 " + parts[1] + ": " + parts[2]);
                     }
                 } else if (message.startsWith("USER_NOT_FOUND:")) {
                     appendToChat("用户 " + message.substring(15) + " 不存在");
                 } else if (message.startsWith("FILE_SENT:")) {
                     String[] parts = message.split(":", 3);
                     if (parts.length == 3) {
-                        appendToChat("文件发送给 " + parts[1] + ": " + parts[2]);
+                        //appendToChat("文件发送给 " + parts[1] + ": " + parts[2]);
                     }
                 } else if (message.startsWith("FILE_FAILED:")) {
                     String[] parts = message.split(":", 3);

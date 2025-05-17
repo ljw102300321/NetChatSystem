@@ -2,6 +2,7 @@ package org.example;
 
 import java.io.*;
 import java.net.*;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -25,7 +26,6 @@ public class ChatServer {
         tcpSocket = new ServerSocket(tcpPort);
         System.out.println("TCP服务器启动，端口: " + tcpPort);
 
-        // 启动心跳检测
         executorService.scheduleAtFixedRate(this::checkHeartbeats, 30, 30, TimeUnit.SECONDS);
 
         while (true) {
@@ -57,26 +57,21 @@ public class ChatServer {
 
             username = parts[1];
             int udpPort = Integer.parseInt(parts[2]);
-
             synchronized (this) {
                 if (clients.containsKey(username)) {
                     out.println("LOGIN_FAILED:用户名已存在");
                     return;
                 }
-
                 clients.put(username, udpPort);
                 clientWriters.put(username, out);
             }
 
             out.println("LOGIN_SUCCESS");
             System.out.println(username + " 登录成功，UDP端口: " + udpPort);
-
-            // 广播用户列表更新（兼容旧逻辑）
+            // 广播用户列表更新
             broadcastUserList();
-
-            // 新增：广播在线用户列表
+            //广播在线用户列表
             broadcastOnlineUsers();
-
             // 处理客户端消息
             String msg;
             while ((msg = in.readLine()) != null) {
@@ -103,6 +98,10 @@ public class ChatServer {
             }
         } catch (IOException e) {
             System.out.println("客户端通信错误: " + e.getMessage());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         } finally {
             if (username != null) {
                 synchronized (this) {
@@ -123,10 +122,6 @@ public class ChatServer {
         }
     }
 
-    /**
-     * 处理发送文本消息
-     */
-
     private void handleSendMessage(String from, String message) {
         String[] parts = message.split(":", 2);
         if (parts.length != 2) return;
@@ -143,7 +138,7 @@ public class ChatServer {
         }
 
         try {
-            // 通过UDP发送消息
+/*            // 通过UDP发送消息
             int toPort = clients.get(to);
             DatagramSocket udpSocket = new DatagramSocket();
             byte[] sendData = (from + ":" + content).getBytes("UTF-8");
@@ -152,7 +147,7 @@ public class ChatServer {
                     InetAddress.getByName("127.0.0.1"), toPort);
             udpSocket.send(sendPacket);
             udpSocket.close();
-
+*/
             // 通知发送方消息已发送
             PrintWriter writer = clientWriters.get(from);
             if (writer != null) {
@@ -170,7 +165,8 @@ public class ChatServer {
                 catch (Exception e){
                     System.out.println("查询失败");
                 }
-                if(!sendId.equals(-1+"")&&receiveId.equals(-1+"")){
+                System.out.println(sendId+"    "+receiveId+"     "+content);
+                if(!sendId.equals(-1+"")&&!receiveId.equals(-1+"")){
                     JDBCUnil.insertChat(sendId,receiveId, content);
                 } else{
                      System.out.println("插入失败");
@@ -179,7 +175,7 @@ public class ChatServer {
             catch (Exception e){
                 System.out.println("插入失败");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             PrintWriter writer = clientWriters.get(from);
             if (writer != null) {
                 writer.println("MSG_FAILED:" + to);
@@ -190,7 +186,7 @@ public class ChatServer {
     /**
      * 处理文件发送请求（仅记录日志）
      */
-    private void handleSendFile(String from, String message) {
+    private void handleSendFile(String from, String message) throws SQLException, ClassNotFoundException {
         String[] parts = message.split(":", 2);
         if (parts.length != 2) return;
 
@@ -210,6 +206,27 @@ public class ChatServer {
             writer.println("FILE_SENT:" + to + ":" + fileName);
         }
         System.out.println(from + " 发送文件给 " + to + ": " + fileName);
+        try {
+            String sendId=-1+"";
+            String receiveId=-1+"";
+            try {
+                sendId=JDBCUnil.selectId(from);
+                receiveId=JDBCUnil.selectId(to);
+            }
+            catch (Exception e){
+                System.out.println("查询失败");
+            }
+            //System.out.println(sendId+"    "+receiveId+"     "+"传输文件："+fileName);
+            if(!sendId.equals(-1+"")&&!receiveId.equals(-1+"")){
+
+                JDBCUnil.insertChat(sendId,receiveId, "传输文件："+fileName);
+            } else{
+                System.out.println("插入失败");
+            }
+        }
+        catch (Exception e) {
+            System.out.println("传输文件超时");
+        }
     }
 
     /**
