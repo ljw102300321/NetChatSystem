@@ -53,7 +53,7 @@ public class JDBCUnil {
     public static int insertFriend(String id,String friend_id) throws SQLException, ClassNotFoundException {
         int insert=0;
         Connection conn = GetConn.getConnection();
-String sql="insert into friends (id, friend_id) values(?,?)";
+String sql="insert into friends (user_id, friend_id) values(?,?)";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setString(1,id);
         pstmt.setString(2,friend_id);
@@ -74,7 +74,7 @@ String sql="insert into friends (id, friend_id) values(?,?)";
     }
 
 
-    public static int selectId(String username) throws SQLException, ClassNotFoundException {
+    public static String selectId(String username) throws SQLException, ClassNotFoundException {
         int id=-1;
             Connection conn = GetConn.getConnection();
             String sql="select id from users where username=?";
@@ -92,7 +92,7 @@ String sql="insert into friends (id, friend_id) values(?,?)";
                 conn.close();
                 pstmt.close();
             }
-        return id;
+        return id+"";
     }
     public static int insertChat(String sender_id,String receiver_id,String message )throws SQLException, ClassNotFoundException {
         int insert=0;

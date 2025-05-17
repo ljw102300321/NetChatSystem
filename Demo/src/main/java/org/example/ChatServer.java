@@ -161,8 +161,8 @@ public class ChatServer {
 
             System.out.println("消息转发: " + from + " -> " + to + ": " + content);
             try {
-                int sendId=-1;
-                int receiveId=-1;
+                String sendId=-1+"";
+                String receiveId=-1+"";
                 try {
                     sendId=JDBCUnil.selectId(from);
                     receiveId=JDBCUnil.selectId(to);
@@ -170,8 +170,8 @@ public class ChatServer {
                 catch (Exception e){
                     System.out.println("查询失败");
                 }
-                if(sendId!=-1&&receiveId!=-1){
-                    JDBCUnil.insertChat(sendId+"",receiveId+"", content);
+                if(!sendId.equals(-1+"")&&receiveId.equals(-1+"")){
+                    JDBCUnil.insertChat(sendId,receiveId, content);
                 } else{
                      System.out.println("插入失败");
                 }

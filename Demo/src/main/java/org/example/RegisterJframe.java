@@ -16,7 +16,7 @@ public class RegisterJframe extends JFrame implements ActionListener {
 
     private JTextField accountField = new JTextField();
     private JTextField nameField = new JTextField();
-    private JPasswordField passwordField = new JPasswordField();
+    private JTextField passwordField = new JTextField();
     private JLabel statusLabel = new JLabel();
 
     public RegisterJframe() {
@@ -71,7 +71,7 @@ public class RegisterJframe extends JFrame implements ActionListener {
         JLabel passwordLabel = createFormLabel("密  码:", 170);
         formPanel.add(passwordLabel);
 
-        passwordField = new JPasswordField();
+        passwordField = new JTextField();
         passwordField.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         passwordField.setBounds(80, 170, 320, 35);
         passwordField.setBorder(createInputBorder());
@@ -201,7 +201,7 @@ public class RegisterJframe extends JFrame implements ActionListener {
     private void performRegister() throws SQLException, ClassNotFoundException {
         String account = accountField.getText().trim();
         String name = nameField.getText().trim();
-        char[] password = passwordField.getPassword();
+        String password = passwordField.getText();
 
         if (validateInputs(account, name, password)) {
 
@@ -215,14 +215,14 @@ public class RegisterJframe extends JFrame implements ActionListener {
         }
     }
 
-    private boolean validateInputs(String account, String name, char[] password) throws SQLException, ClassNotFoundException {
-        if (account.isEmpty() || name.isEmpty() || password.length == 0) {
+    private boolean validateInputs(String account, String name, String password) throws SQLException, ClassNotFoundException {
+        if (account.isEmpty() || name.isEmpty() || password.isEmpty()) {
             statusLabel.setText("所有字段必须填写！");
             return false;
         }
        String id= accountField.getText();
                 String userName=nameField.getText();
-        String userPassword=passwordField.getPassword().toString();
+        String userPassword=passwordField.getText();
         int insert=0;
         try {
             insert=JDBCUnil.insertUser(id, userName, userPassword);

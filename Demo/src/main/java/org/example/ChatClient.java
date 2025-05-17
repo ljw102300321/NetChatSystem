@@ -6,6 +6,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -171,6 +172,13 @@ public class ChatClient extends JFrame {
                 friendsMap.put(friendName, 0); // 默认端口为0，后续从服务器获取
                 appendToChat("已添加好友: " + friendName + "（端口待更新）");
                 friendInputField.setText(""); // 清空输入框
+                try {
+                    JDBCUnil.insertFriend(String.valueOf(udpPort),JDBCUnil.selectId(friendName));
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                } catch (ClassNotFoundException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         });
         addFriendPanel.add(addFriendButton);
