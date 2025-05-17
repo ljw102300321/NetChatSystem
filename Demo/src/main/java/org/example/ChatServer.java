@@ -153,7 +153,6 @@ public class ChatServer {
             if (writer != null) {
                 writer.println("MSG_SENT:" + to + ":" + content);
             }
-
             System.out.println("消息转发: " + from + " -> " + to + ": " + content);
             try {
                 String sendId=-1+"";
