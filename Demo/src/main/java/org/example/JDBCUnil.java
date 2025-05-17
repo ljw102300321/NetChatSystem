@@ -1,9 +1,12 @@
 package org.example;
 
+import javax.swing.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JDBCUnil {
     public static boolean isExist(String id,String username,String password) throws SQLException, ClassNotFoundException {
@@ -143,4 +146,71 @@ String sql="insert into friends (user_id, friend_id) values(?,?)";
         }
         return insert;
     }
+
+    /**
+     * 获取指定用户的所有好友名
+     */
+    public static List<String> getFriends(String username) throws SQLException, ClassNotFoundException {
+        List<String> friends = new ArrayList<>();
+
+        String userId = selectId(username);
+        if (userId == null || userId.equals("-1")) {
+            return friends;
+        }
+
+        Connection conn = GetConn.getConnection();
+        String sql = "SELECT friend_id FROM friends WHERE user_id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, userId);
+
+        try (ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                String friendId = rs.getString("friend_id");
+                String friendName = getIdToUsername(friendId);
+                if (friendName != null) {
+                    friends.add(friendName);
+                }
+            }
+        } finally {
+            conn.close();
+            pstmt.close();
+        }
+
+        return friends;
+    }
+
+    /**
+     * 根据用户ID获取用户名
+     */
+    private static String getIdToUsername(String id) throws SQLException, ClassNotFoundException {
+        String name = null;
+        Connection conn = GetConn.getConnection();
+        String sql = "SELECT username FROM users WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, id);
+
+        try (ResultSet rs = pstmt.executeQuery()) {
+            if (rs.next()) {
+                name = rs.getString("username");
+            }
+        } finally {
+            conn.close();
+            pstmt.close();
+        }
+
+        return name;
+    }
+
+    /**
+     * 判断某个用户是否在线（本地模型判断）
+     */
+    public static boolean isOnline(String username, DefaultListModel<String> onlineFriendsModel) {
+        for (int i = 0; i < onlineFriendsModel.getSize(); i++) {
+            if (username.equals(onlineFriendsModel.getElementAt(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
