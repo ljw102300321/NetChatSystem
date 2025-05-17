@@ -2,6 +2,7 @@ package org.example;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -39,9 +40,9 @@ public class ChatServer {
         String username = null;
         try (
                 BufferedReader in = new BufferedReader(
-                        new InputStreamReader(clientSocket.getInputStream(), "UTF-8"));
+                        new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
                 PrintWriter out = new PrintWriter(
-                        new OutputStreamWriter(clientSocket.getOutputStream(), "UTF-8"), true)
+                        new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8), true)
         ) {
             // 登录验证
             String loginMessage = in.readLine();
