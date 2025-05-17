@@ -11,6 +11,7 @@
     <option name="ignoredFiles">
       <set>
         <option value="$PROJECT_DIR$/Chat/pom.xml" />
+        <option value="$PROJECT_DIR$/Demo/pom.xml" />
       </set>
     </option>
   </component>

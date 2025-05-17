@@ -8,7 +8,7 @@ public class GetConn {
         Class.forName("com.mysql.cj.jdbc.Driver");
         String url = "jdbc:mysql://localhost:3306/chat_app";
         String username = "root";
-        String password = "123456";
+        String password = "lcf118855";
         return DriverManager.getConnection(url,username, password);
     }
 }

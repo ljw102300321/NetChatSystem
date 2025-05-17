@@ -8,6 +8,7 @@ import java.net.*;
 import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.*;
 
 public class ChatClient extends JFrame {
@@ -37,6 +38,8 @@ public class ChatClient extends JFrame {
         onlineFriendsModel = new DefaultListModel<>();
         userFriends = new HashSet<>();
         friendsMap = new ConcurrentHashMap<>();
+        // 新增：从数据库加载已有好友
+        loadFriendsFromDatabase();
         initializeGUI();
         initializeNetwork();
     }
@@ -103,7 +106,7 @@ public class ChatClient extends JFrame {
         });
 
         JScrollPane onlineFriendScroll = new JScrollPane(onlineFriendList);
-        JLabel onlineLabel = new JLabel("在线好友");
+        JLabel onlineLabel = new JLabel("在线用户(双击对话）");
         JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
         rightPanel.setPreferredSize(new Dimension(150, 400));
         rightPanel.add(onlineLabel, BorderLayout.NORTH);
@@ -142,7 +145,7 @@ public class ChatClient extends JFrame {
         refreshButton.addActionListener(e -> tcpOut.println("REQUEST_USERLIST"));
         topPanel.add(refreshButton);
 
-        JButton refreshOnlineButton = new JButton("刷新在线好友");
+        JButton refreshOnlineButton = new JButton("刷新在线用户");
         refreshOnlineButton.addActionListener(e -> tcpOut.println("REQUEST_ONLINE_USERS"));
         topPanel.add(refreshOnlineButton);
 
@@ -166,21 +169,46 @@ public class ChatClient extends JFrame {
         addFriendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
         addFriendButton.addActionListener(e -> {
             String friendName = friendInputField.getText().trim();
-            if (!friendName.isEmpty() && !userFriends.contains(friendName)) {
-                userFriends.add(friendName);
-                friendsModel.addElement(friendName);
-                friendsMap.put(friendName, 0); // 默认端口为0，后续从服务器获取
-                appendToChat("已添加好友: " + friendName + "（端口待更新）");
-                friendInputField.setText(""); // 清空输入框
-                try {
-                    JDBCUnil.insertFriend(String.valueOf(udpPort),JDBCUnil.selectId(friendName));
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                } catch (ClassNotFoundException ex) {
-                    throw new RuntimeException(ex);
-                }
+            if (friendName.isEmpty()) {
+                showError("添加失败", "请输入要添加的好友用户名");
+                return;
+            }
+
+            if (userFriends.contains(friendName)) {
+                showError("添加失败", "该好友已存在");
+                return;
+            }
+
+            // 查询好友是否存在
+            String friendId = null;
+            try {
+                friendId = JDBCUnil.selectId(friendName);
+            } catch (Exception ex) {
+                showError("数据库错误", "无法查询好友信息: " + ex.getMessage());
+                return;
+            }
+
+            if (friendId.equals("-1")) {
+                // 数据库中没有该用户
+                showError("添加失败", "该用户不存在，请确认用户名正确");
+                return;
+            }
+
+            // 用户存在，继续添加
+            userFriends.add(friendName);
+            friendsModel.addElement(friendName);
+            friendsMap.put(friendName, 0); // 端口后续通过服务器获取
+            appendToChat("已添加好友: " + friendName + "（端口待更新）");
+            friendInputField.setText("");
+
+            // 插入数据库（可选）
+            try {
+                JDBCUnil.insertFriend(String.valueOf(udpPort), friendId);
+            } catch (Exception ex) {
+                showError("数据库错误", "保存好友失败: " + ex.getMessage());
             }
         });
+
         addFriendPanel.add(addFriendButton);
 
         topPanel.add(addFriendPanel); // 将新面板加入顶部面板
@@ -197,6 +225,65 @@ public class ChatClient extends JFrame {
             }
         });
         addFriendPanel.add(removeFriendButton); // buttonPanel 是你放置按钮的容器
+
+        //好友在线信息
+        friendList.setCellRenderer(new DefaultListCellRenderer() {
+            private final JLabel label = new JLabel();
+
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                String friendName = (String) value;
+                label.setText(friendName);
+
+                if (isUserOnline(friendName)) {
+                    label.setForeground(Color.GREEN);
+                } else {
+                    label.setForeground(Color.RED);
+                }
+
+                label.setOpaque(true);
+                if (isSelected) {
+                    label.setBackground(list.getSelectionBackground());
+                    label.setForeground(list.getSelectionForeground());
+                } else {
+                    label.setBackground(list.getBackground());
+                }
+
+                return label;
+            }
+
+            // 检查用户是否在线（根据 onlineFriendsModel）
+            private boolean isUserOnline(String name) {
+                return JDBCUnil.isOnline(name, onlineFriendsModel);
+            }
+        });
+
+        friendList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int index = friendList.locationToIndex(e.getPoint());
+                    if (index >= 0) {
+                        friendList.setSelectedIndex(index);
+                        JPopupMenu menu = new JPopupMenu();
+                        JMenuItem removeItem = new JMenuItem("删除好友");
+                        removeItem.addActionListener(ev -> {
+                            String selected = friendList.getSelectedValue();
+                            if (selected != null && userFriends.contains(selected)) {
+                                userFriends.remove(selected);
+                                friendsModel.removeElement(selected);
+                                friendsMap.remove(selected);
+                                appendToChat("已删除好友: " + selected);
+                            }
+                        });
+                        menu.add(removeItem);
+                        menu.show(friendList, e.getX(), e.getY());
+                    }
+                }
+            }
+        });
+
 
 
 
@@ -341,9 +428,9 @@ public class ChatClient extends JFrame {
 
     private void updateOnlineFriends(String userListStr) {
         SwingUtilities.invokeLater(() -> {
-            onlineFriendsModel.clear();
-
+            Set<String> currentOnlineUsers = new HashSet<>();
             String[] users = userListStr.split(";");
+
             for (String userInfo : users) {
                 if (!userInfo.isEmpty()) {
                     String[] parts = userInfo.split(",");
@@ -352,14 +439,39 @@ public class ChatClient extends JFrame {
                         int port = Integer.parseInt(parts[1].trim());
 
                         if (!name.equals(username)) {
-                            onlineFriendsModel.addElement(name);
-                            friendsMap.put(name, port); // 更新或添加好友端口
+                            currentOnlineUsers.add(name);
+                            friendsMap.put(name, port); // 更新好友端口
                         }
                     }
                 }
             }
+
+            // 只更新在线列表，避免全部删除再添加
+            for (int i = 0; i < onlineFriendsModel.getSize(); i++) {
+                String user = onlineFriendsModel.getElementAt(i);
+                if (!currentOnlineUsers.contains(user)) {
+                    onlineFriendsModel.removeElement(user);
+                }
+            }
+
+            for (String user : currentOnlineUsers) {
+                if (!containsUser(onlineFriendsModel, user)) {
+                    onlineFriendsModel.addElement(user);
+                }
+            }
         });
     }
+
+    // 辅助方法：检查ListModel是否包含指定用户
+    private boolean containsUser(DefaultListModel<String> model, String user) {
+        for (int i = 0; i < model.getSize(); i++) {
+            if (model.getElementAt(i).equals(user)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     // 在 sendMessage() 方法中添加刷新逻辑
     private void sendMessage() {
@@ -367,17 +479,28 @@ public class ChatClient extends JFrame {
         if (message.isEmpty()) return;
 
         String selected = friendList.getSelectedValue();
-        if (selected == null || !friendsMap.containsKey(selected)) {
-            showError("发送失败", "请选择有效的好友");
+        if (selected == null) {
+            showError("发送失败", "未选择好友");
             return;
         }
+
+        if (!friendsMap.containsKey(selected)) {
+            if (!JDBCUnil.isOnline(selected, onlineFriendsModel)) {
+                showError("发送失败", "好友 " + selected + " 当前离线");
+                return;
+            } else {
+                showError("发送失败", "无法获取好友的UDP端口");
+                return;
+            }
+        }
+
 
         // 刷新好友端口
         tcpOut.println("REQUEST_ONLINE_USERS");
 
         int toPort = friendsMap.getOrDefault(selected, 0);
         if (toPort == 0) {
-            showError("发送失败", "尚未获取该好友的UDP端口");
+            showError("发送失败", "好友离线或尚未获取该好友的UDP端口，请重试或等待好友上线");
             return;
         }
 
@@ -407,11 +530,21 @@ public class ChatClient extends JFrame {
         if (result == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
             String selectedFriend = friendList.getSelectedValue();
-
-            if (selectedFriend == null || !friendsMap.containsKey(selectedFriend)) {
-                showError("发送失败", "请选择有效的好友");
+            if (selectedFriend == null) {
+                showError("发送失败", "未选择好友");
                 return;
             }
+
+            if (!friendsMap.containsKey(selectedFriend)) {
+                if (!JDBCUnil.isOnline(selectedFriend, onlineFriendsModel)) {
+                    showError("发送失败", "好友 " + selectedFriend + " 当前离线");
+                    return;
+                } else {
+                    showError("发送失败", "无法获取好友的UDP端口");
+                    return;
+                }
+            }
+
 
             // 通知服务器文件发送动作
             tcpOut.println("SEND_FILE:" + selectedFriend + ":" + file.getName());
@@ -486,6 +619,22 @@ public class ChatClient extends JFrame {
         SwingUtilities.invokeLater(() ->
                 JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE));
     }
+
+    private void loadFriendsFromDatabase() {
+        try {
+            // 假设 JDBCUnil.getFriends(username) 返回 List<String> 类型的好友名列表
+            List<String> friends = JDBCUnil.getFriends(username); // 需要你实现这个方法
+            for (String friend : friends) {
+                userFriends.add(friend);
+                friendsModel.addElement(friend);
+                friendsMap.put(friend, 0); // 先设置为默认端口，后续刷新获取真实值
+            }
+            appendToChat("已从数据库加载 " + friends.size() + " 位好友");
+        } catch (Exception e) {
+            showError("加载好友失败", "无法从数据库中读取好友列表: " + e.getMessage());
+        }
+    }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
