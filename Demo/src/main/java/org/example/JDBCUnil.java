@@ -49,7 +49,6 @@ public class JDBCUnil {
         return b;
     }
 
-
     public static int insertFriend(String id,String friend_id) throws SQLException, ClassNotFoundException {
         int insert=0;
         Connection conn = GetConn.getConnection();
