@@ -243,7 +243,7 @@ public class ChatServer {
 
         synchronized (this) {
             for (PrintWriter writer : clientWriters.values()) {
-                writer.println(userList.toString());
+                writer.println(userList);
             }
         }
     }
@@ -258,7 +258,7 @@ public class ChatServer {
                 userList.append(entry.getKey()).append(",").append(entry.getValue()).append(";");
             }
         }
-        out.println(userList.toString());
+        out.println(userList);
     }
 
     /**
@@ -281,11 +281,11 @@ public class ChatServer {
 
         synchronized (this) {
             for (PrintWriter writer : clientWriters.values()) {
-                writer.println(userList.toString());
+                writer.println(userList);
             }
         }
 
-        System.out.println("广播在线用户列表: " + userList.toString());
+        System.out.println("广播在线用户列表: " + userList);
     }
 
     /**
@@ -305,12 +305,9 @@ public class ChatServer {
             }
         }
 
-        out.println(userList.toString());
+        out.println(userList);
     }
 
-    /**
-     * 心跳检测机制
-     */
     private void checkHeartbeats() {
         List<String> toRemove = new ArrayList<>();
 
