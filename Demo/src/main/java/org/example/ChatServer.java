@@ -327,7 +327,6 @@ public class ChatServer {
                 System.out.println(username + " 心跳检测失败，强制下线");
             }
         }
-
         if (!toRemove.isEmpty()) {
             broadcastUserList();
             broadcastOnlineUsers();
