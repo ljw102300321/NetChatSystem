@@ -5,19 +5,20 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.*;
 
+/**
+ * @author Lenovo
+ */
 public class ChatClient extends JFrame {
     private JTextArea chatArea;
     private JTextField messageField;
-    private JButton sendButton;
-    private JButton fileSendButton;
     private JList<String> friendList;
-    private DefaultListModel<String> friendsModel;
+    private final DefaultListModel<String> friendsModel;
     private DatagramSocket udpSocket;
     private final int udpPort;
     private Socket tcpSocket;
@@ -119,22 +120,22 @@ public class ChatClient extends JFrame {
         // 消息输入框
         messageField = new JTextField();
         messageField.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        messageField.addActionListener(e -> sendMessage());
+        messageField.addActionListener(_ -> sendMessage());
         bottomPanel.add(messageField, BorderLayout.CENTER);
 
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 5));
 
         // 文件发送按钮
-        fileSendButton = new JButton("发送文件");
+        JButton fileSendButton = new JButton("发送文件");
         fileSendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        fileSendButton.addActionListener(e -> sendFile());
+        fileSendButton.addActionListener(_ -> sendFile());
         buttonPanel.add(fileSendButton);
 
         // 发送按钮
-        sendButton = new JButton("发送");
+        JButton sendButton = new JButton("发送");
         sendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        sendButton.addActionListener(e -> sendMessage());
+        sendButton.addActionListener(_ -> sendMessage());
         buttonPanel.add(sendButton);
 
         bottomPanel.add(buttonPanel, BorderLayout.EAST);
@@ -142,11 +143,11 @@ public class ChatClient extends JFrame {
         // 顶部面板
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
         JButton refreshButton = new JButton("刷新好友列表");
-        refreshButton.addActionListener(e -> tcpOut.println("REQUEST_USERLIST"));
+        refreshButton.addActionListener(_ -> tcpOut.println("REQUEST_USERLIST"));
         topPanel.add(refreshButton);
 
         JButton refreshOnlineButton = new JButton("刷新在线用户");
-        refreshOnlineButton.addActionListener(e -> tcpOut.println("REQUEST_ONLINE_USERS"));
+        refreshOnlineButton.addActionListener(_ -> tcpOut.println("REQUEST_ONLINE_USERS"));
         topPanel.add(refreshOnlineButton);
 
         // 添加面板到主窗口
@@ -167,7 +168,7 @@ public class ChatClient extends JFrame {
 
         JButton addFriendButton = new JButton("添加");
         addFriendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        addFriendButton.addActionListener(e -> {
+        addFriendButton.addActionListener(_ -> {
             String friendName = friendInputField.getText().trim();
             if (friendName.isEmpty()) {
                 showError("添加失败", "请输入要添加的好友用户名");
@@ -180,7 +181,7 @@ public class ChatClient extends JFrame {
             }
 
             // 查询好友是否存在
-            String friendId = null;
+            String friendId;
             try {
                 friendId = JDBCUnil.selectId(friendName);
             } catch (Exception ex) {
@@ -188,7 +189,7 @@ public class ChatClient extends JFrame {
                 return;
             }
 
-            if (friendId.equals("-1")) {
+            if ("-1".equals(friendId)) {
                 // 数据库中没有该用户
                 showError("添加失败", "该用户不存在，请确认用户名正确");
                 return;
@@ -215,7 +216,7 @@ public class ChatClient extends JFrame {
 
         JButton removeFriendButton = new JButton("删除好友");
         removeFriendButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        removeFriendButton.addActionListener(e -> {
+        removeFriendButton.addActionListener(_ -> {
             String selected = friendList.getSelectedValue();
             if (selected != null && userFriends.contains(selected)) {
                 userFriends.remove(selected);
@@ -268,7 +269,7 @@ public class ChatClient extends JFrame {
                         friendList.setSelectedIndex(index);
                         JPopupMenu menu = new JPopupMenu();
                         JMenuItem removeItem = new JMenuItem("删除好友");
-                        removeItem.addActionListener(ev -> {
+                        removeItem.addActionListener(_ -> {
                             String selected = friendList.getSelectedValue();
                             if (selected != null && userFriends.contains(selected)) {
                                 userFriends.remove(selected);
@@ -300,15 +301,12 @@ public class ChatClient extends JFrame {
             // 连接TCP服务器
             tcpSocket = new Socket("127.0.0.1", 9999);
             tcpOut = new PrintWriter(
-                    new OutputStreamWriter(tcpSocket.getOutputStream(), "UTF-8"), true);
+                    new OutputStreamWriter(tcpSocket.getOutputStream(), StandardCharsets.UTF_8), true);
             tcpIn = new BufferedReader(
-                    new InputStreamReader(tcpSocket.getInputStream(), "UTF-8"));
+                    new InputStreamReader(tcpSocket.getInputStream(), StandardCharsets.UTF_8));
 
             // 发送登录信息
             tcpOut.println("LOGIN:" + username + ":" + udpPort);
-
-            // 启动心跳
-            startHeartbeat();
 
             // 启动服务器消息接收线程
             new Thread(this::receiveServerMessages).start();
@@ -327,7 +325,7 @@ public class ChatClient extends JFrame {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     udpSocket.receive(packet);
 
-                    String received = new String(packet.getData(), 0, packet.getLength(), "UTF-8");
+                    String received = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
 
                     if (received.startsWith("FILE:")) {
                         handleFileTransfer(packet, received);
@@ -345,7 +343,9 @@ public class ChatClient extends JFrame {
 
     private void handleFileTransfer(DatagramPacket packet, String header) throws IOException {
         String[] parts = header.split(":", 3);
-        if (parts.length != 3) return;
+        if (parts.length != 3) {
+            return;
+        }
 
         String from = parts[1];
         String fileName = parts[2];
@@ -409,7 +409,7 @@ public class ChatClient extends JFrame {
                     if (parts.length == 3) {
                         appendToChat("文件发送失败: " + parts[2]);
                     }
-                } else if (message.equals("HEARTBEAT_CHECK")) {
+                } else if ("HEARTBEAT_CHECK".equals(message)) {
                     tcpOut.println("HEARTBEAT");
                 } else {
                     appendToChat("系统: " + message);
@@ -476,7 +476,9 @@ public class ChatClient extends JFrame {
     // 在 sendMessage() 方法中添加刷新逻辑
     private void sendMessage() {
         String message = messageField.getText().trim();
-        if (message.isEmpty()) return;
+        if (message.isEmpty()) {
+            return;
+        }
 
         String selected = friendList.getSelectedValue();
         if (selected == null) {
@@ -487,11 +489,10 @@ public class ChatClient extends JFrame {
         if (!friendsMap.containsKey(selected)) {
             if (!JDBCUnil.isOnline(selected, onlineFriendsModel)) {
                 showError("发送失败", "好友 " + selected + " 当前离线");
-                return;
             } else {
                 showError("发送失败", "无法获取好友的UDP端口");
-                return;
             }
+            return;
         }
 
 
@@ -538,11 +539,10 @@ public class ChatClient extends JFrame {
             if (!friendsMap.containsKey(selectedFriend)) {
                 if (!JDBCUnil.isOnline(selectedFriend, onlineFriendsModel)) {
                     showError("发送失败", "好友 " + selectedFriend + " 当前离线");
-                    return;
                 } else {
                     showError("发送失败", "无法获取好友的UDP端口");
-                    return;
                 }
+                return;
             }
 
 
@@ -580,18 +580,6 @@ public class ChatClient extends JFrame {
         }
     }
 
-    private void startHeartbeat() {
-        heartbeatExecutor = Executors.newSingleThreadScheduledExecutor();
-        heartbeatExecutor.scheduleAtFixedRate(() -> {
-            try {
-                tcpOut.println("HEARTBEAT");
-            } catch (Exception e) {
-                showError("心跳发送失败", e.getMessage());
-                disconnect();
-            }
-        }, 0, 25, TimeUnit.SECONDS);
-    }
-
     private void disconnect() {
         try {
             if (heartbeatExecutor != null) {
@@ -623,11 +611,13 @@ public class ChatClient extends JFrame {
     private void loadFriendsFromDatabase() {
         try {
             // 假设 JDBCUnil.getFriends(username) 返回 List<String> 类型的好友名列表
-            List<String> friends = JDBCUnil.getFriends(username); // 需要你实现这个方法
+            // 需要你实现这个方法
+            List<String> friends = JDBCUnil.getFriends(username);
             for (String friend : friends) {
                 userFriends.add(friend);
                 friendsModel.addElement(friend);
-                friendsMap.put(friend, 0); // 先设置为默认端口，后续刷新获取真实值
+                // 先设置为默认端口，后续刷新获取真实值
+                friendsMap.put(friend, 0);
             }
             appendToChat("已从数据库加载 " + friends.size() + " 位好友");
         } catch (Exception e) {

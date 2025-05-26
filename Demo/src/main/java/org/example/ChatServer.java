@@ -7,11 +7,16 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * @author Lenovo
+ */
 public class ChatServer {
     private ServerSocket tcpSocket;
     private final int tcpPort = 9999;
-    private final Map<String, Integer> clients = new ConcurrentHashMap<>(); // 用户名 -> UDP端口
-    private final Map<String, PrintWriter> clientWriters = new ConcurrentHashMap<>(); // 用户名 -> TCP输出流
+    // 用户名 -> UDP端口
+    private final Map<String, Integer> clients = new ConcurrentHashMap<>();
+    // 用户名 -> TCP输出流
+    private final Map<String, PrintWriter> clientWriters = new ConcurrentHashMap<>();
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
 
@@ -68,7 +73,7 @@ public class ChatServer {
                 clientWriters.put(username, out);
             }
 
-            out.println("LOGIN_SUCCESS");
+            out.println("登录成功");
             System.out.println(username + " 登录成功，UDP端口: " + udpPort);
             // 广播用户列表更新
             broadcastUserList();
@@ -81,11 +86,9 @@ public class ChatServer {
                     handleSendMessage(username, msg.substring(5));
                 } else if (msg.startsWith("SEND_FILE:")) {
                     handleSendFile(username, msg.substring(10));
-                } else if (msg.equals("HEARTBEAT")) {
-                    out.println("HEARTBEAT_ACK");
-                } else if (msg.equals("REQUEST_USERLIST")) {
+                }else if ("REQUEST_USERLIST".equals(msg)) {
                     sendUserList(out);
-                } else if (msg.equals("REQUEST_ONLINE_USERS")) {
+                } else if ("REQUEST_ONLINE_USERS".equals(msg)) {
                     // 新增：处理客户端请求在线用户列表
                     sendOnlineUsers(out);
                 } else if (msg.startsWith("MSG_RECEIVED:")) {
@@ -100,9 +103,7 @@ public class ChatServer {
             }
         } catch (IOException e) {
             System.out.println("客户端通信错误: " + e.getMessage());
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         } finally {
             if (username != null) {
@@ -126,7 +127,9 @@ public class ChatServer {
 
     private void handleSendMessage(String from, String message) {
         String[] parts = message.split(":", 2);
-        if (parts.length != 2) return;
+        if (parts.length != 2) {
+            return;
+        }
 
         String to = parts[0];
         String content = parts[1];
@@ -188,7 +191,9 @@ public class ChatServer {
      */
     private void handleSendFile(String from, String message) throws SQLException, ClassNotFoundException {
         String[] parts = message.split(":", 2);
-        if (parts.length != 2) return;
+        if (parts.length != 2) {
+            return;
+        }
 
         String to = parts[0];
         String fileName = parts[1];
